@@ -2,12 +2,18 @@ require('dotenv').config() //to be able to use environment variables through all
 const express = require('express');
 const app = express();
 const path = require('path');
-const PORT = process.env.PORT || 3505
 const {logger} = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const corsOptions = require('./config/corsOptions');
+const connectDB = require('./config/dbConn');
+const { default: mongoose } = require('mongoose');
+const PORT = process.env.PORT || 3505
+
+console.log(process.env.NODE_ENV);
+
+connectDB()
 
 app.use(logger) // use logger middleware
 
@@ -34,5 +40,13 @@ app.all('*', (req,res) =>{ // catch all routes that are not defined
 
 app.use(errorHandler) // use error handler middleware
 
+mongoose.connection.once('open', () => {
+  console.log('Connected to MongoDB');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+})
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+mongoose.connection.once('error', (err) => {
+  console.log(err);
+  logEvents(`${err.no}: ${err.code}\t${err.syscall}\t${err.hostname}`, 'mongoErrLog.log')
+})
+
